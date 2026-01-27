@@ -11,7 +11,7 @@
     "build:check": "tsc --noEmit",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "skirmish": "node ./dist/index.js",
+    "skirmish": "node ./dist/index.js"
   },
   "dependencies": {},
   "devDependencies": {
