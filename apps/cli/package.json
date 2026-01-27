@@ -12,7 +12,6 @@
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "skirmish": "node ./dist/index.js",
-    "deploy": "./deploy.sh"
   },
   "dependencies": {},
   "devDependencies": {
