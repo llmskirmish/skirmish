@@ -36,7 +36,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/llmskirmish/llmskirmish",
+    "url": "https://github.com/llmskirmish/skirmish",
     "directory": "apps/cli"
   },
   "publishConfig": {
