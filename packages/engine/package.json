@@ -1,0 +1,53 @@
+{
+  "name": "@skirmish/engine",
+  "version": "0.1.0",
+  "description": "Skirmish server-side game engine",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server/index.d.ts",
+      "import": "./dist/server/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@skirmish/maps": "workspace:*",
+    "@skirmish/replay": "workspace:*",
+    "@skirmish/types": "workspace:*"
+  },
+  "optionalDependencies": {
+    "ws": "^8.16.0"
+  },
+  "peerDependencies": {
+    "ws": "^8.16.0"
+  },
+  "peerDependenciesMeta": {
+    "ws": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@skirmish/typescript-config": "workspace:*",
+    "@types/node": "^20.10.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT"
+}

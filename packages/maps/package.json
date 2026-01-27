@@ -1,0 +1,28 @@
+{
+  "name": "@skirmish/maps",
+  "version": "0.1.0",
+  "description": "Skirmish map types and utilities - shared between engine and frontend",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@skirmish/typescript-config": "workspace:*",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT"
+}

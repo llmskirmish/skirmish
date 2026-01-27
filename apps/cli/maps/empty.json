@@ -1,0 +1,272 @@
+{
+  "name": "Empty",
+  "colors": {
+    "floor": "0x3a3a4a",
+    "wall": "0x5a5a6a",
+    "wallHighlight": "0x7a7a8a",
+    "swamp": "0x2a4a5a",
+    "swampDark": "0x1a3a4a"
+  },
+  "walls": [],
+  "swamps": [],
+  "initialObjects": [
+    {
+      "type": "spawn",
+      "x": 20,
+      "y": 50,
+      "user": "player1",
+      "hits": 5000,
+      "hitsMax": 5000,
+      "store": {
+        "energy": 300
+      },
+      "storeCapacity": 300,
+      "spawning": null,
+      "directions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "exists": true
+    },
+    {
+      "type": "creep",
+      "x": 28,
+      "y": 46,
+      "user": "player1",
+      "hits": 500,
+      "hitsMax": 500,
+      "fatigue": 0,
+      "my": true,
+      "spawning": false,
+      "store": {},
+      "body": [
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "tough",
+          "hits": 100
+        }
+      ],
+      "exists": true
+    },
+    {
+      "type": "creep",
+      "x": 28,
+      "y": 50,
+      "user": "player1",
+      "hits": 500,
+      "hitsMax": 500,
+      "fatigue": 0,
+      "my": true,
+      "spawning": false,
+      "store": {},
+      "body": [
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "tough",
+          "hits": 100
+        }
+      ],
+      "exists": true
+    },
+    {
+      "type": "creep",
+      "x": 28,
+      "y": 54,
+      "user": "player1",
+      "hits": 500,
+      "hitsMax": 500,
+      "fatigue": 0,
+      "my": true,
+      "spawning": false,
+      "store": {},
+      "body": [
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "tough",
+          "hits": 100
+        }
+      ],
+      "exists": true
+    },
+    {
+      "type": "spawn",
+      "x": 80,
+      "y": 50,
+      "user": "player2",
+      "hits": 5000,
+      "hitsMax": 5000,
+      "store": {
+        "energy": 300
+      },
+      "storeCapacity": 300,
+      "spawning": null,
+      "directions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "exists": true
+    },
+    {
+      "type": "creep",
+      "x": 72,
+      "y": 46,
+      "user": "player2",
+      "hits": 500,
+      "hitsMax": 500,
+      "fatigue": 0,
+      "my": true,
+      "spawning": false,
+      "store": {},
+      "body": [
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "tough",
+          "hits": 100
+        }
+      ],
+      "exists": true
+    },
+    {
+      "type": "creep",
+      "x": 72,
+      "y": 50,
+      "user": "player2",
+      "hits": 500,
+      "hitsMax": 500,
+      "fatigue": 0,
+      "my": true,
+      "spawning": false,
+      "store": {},
+      "body": [
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "tough",
+          "hits": 100
+        }
+      ],
+      "exists": true
+    },
+    {
+      "type": "creep",
+      "x": 72,
+      "y": 54,
+      "user": "player2",
+      "hits": 500,
+      "hitsMax": 500,
+      "fatigue": 0,
+      "my": true,
+      "spawning": false,
+      "store": {},
+      "body": [
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "attack",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "move",
+          "hits": 100
+        },
+        {
+          "type": "tough",
+          "hits": 100
+        }
+      ],
+      "exists": true
+    }
+  ]
+}

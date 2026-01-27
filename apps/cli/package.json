@@ -1,0 +1,46 @@
+{
+  "name": "@llmskirmish/skirmish",
+  "version": "0.1.0",
+  "description": "CLI for running LLM Skirmish battles between AI scripts",
+  "type": "module",
+  "bin": {
+    "skirmish": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "build:check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "skirmish": "node ./dist/index.js",
+    "deploy": "./deploy.sh"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@skirmish/engine": "workspace:*",
+    "@skirmish/maps": "workspace:*",
+    "@skirmish/typescript-config": "workspace:*",
+    "@types/node": "^20.10.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist",
+    "example_strategies",
+    "maps"
+  ],
+  "keywords": [
+    "llm skirmish",
+    "skirmish",
+    "ai skirmish"
+  ],
+  "author": "Kai McPheeters <kai@mcpheeters.us>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/llmskirmish/llmskirmish",
+    "directory": "apps/cli"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

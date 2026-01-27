@@ -1,0 +1,52 @@
+{
+  "name": "@skirmish/types",
+  "version": "0.1.0",
+  "description": "TypeScript type definitions for Skirmish",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./constants": {
+      "types": "./dist/constants.d.ts",
+      "import": "./dist/constants.js"
+    },
+    "./prototypes": {
+      "types": "./dist/prototypes/index.d.ts",
+      "import": "./dist/prototypes/index.js"
+    },
+    "./path-finder": {
+      "types": "./dist/path-finder.d.ts",
+      "import": "./dist/path-finder.js"
+    },
+    "./utils": {
+      "types": "./dist/utils.d.ts",
+      "import": "./dist/utils.js"
+    },
+    "./visual": {
+      "types": "./dist/visual.d.ts",
+      "import": "./dist/visual.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@skirmish/maps": "workspace:*"
+  },
+  "devDependencies": {
+    "@skirmish/typescript-config": "workspace:*",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT"
+}
+

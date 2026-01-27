@@ -1,0 +1,11 @@
+{
+  "extends": "@skirmish/typescript-config/library.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "types": ["vitest/globals"]
+  },
+  "include": ["src"],
+  "exclude": ["src/__tests__"]
+}
+
