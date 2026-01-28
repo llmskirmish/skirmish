@@ -45,6 +45,7 @@ const examplesDir = join(cliRoot, 'example_strategies');
 interface CLIOptions {
   scriptPath?: string;
   help: boolean;
+  unknownFlags: string[];
 }
 
 interface ValidationResult {
@@ -52,12 +53,16 @@ interface ValidationResult {
   error?: string;
 }
 
+// Known flags for this command
+const KNOWN_FLAGS = ['--help', '-h'];
+
 /**
  * Parse command line arguments
  */
 function parseArgs(args: string[]): CLIOptions {
   const options: CLIOptions = {
-    help: false
+    help: false,
+    unknownFlags: []
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -67,6 +72,8 @@ function parseArgs(args: string[]): CLIOptions {
       options.help = true;
     } else if (!arg.startsWith('-') && !options.scriptPath) {
       options.scriptPath = arg;
+    } else if (arg.startsWith('-') && !KNOWN_FLAGS.includes(arg)) {
+      options.unknownFlags.push(arg);
     }
   }
 
@@ -164,7 +171,7 @@ function runValidationMatch(scriptToValidate: string): ValidationResult {
   // Check for script initialization errors
   const player1Runner = runners.get('player1');
   if (player1Runner?.hasInitError()) {
-    for (const runner of runners.values()) {
+    for (const runner of Array.from(runners.values())) {
       runner.destroy();
     }
     return {
@@ -211,7 +218,7 @@ function runValidationMatch(scriptToValidate: string): ValidationResult {
   }
   
   // Clean up runners
-  for (const runner of runners.values()) {
+  for (const runner of Array.from(runners.values())) {
     runner.destroy();
   }
   
@@ -228,6 +235,11 @@ function runValidationMatch(scriptToValidate: string): ValidationResult {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const options = parseArgs(args);
+
+  // Warn about unknown flags
+  for (const flag of options.unknownFlags) {
+    console.warn(`Warning: Unknown option '${flag}'`);
+  }
 
   if (options.help) {
     showHelp();

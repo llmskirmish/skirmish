@@ -1,6 +1,9 @@
 import * as esbuild from 'esbuild';
 import { readFileSync } from 'fs';
 
+// Read version from package.json
+const pkg = JSON.parse(readFileSync('package.json', 'utf-8'));
+
 // Build the CLI with all workspace dependencies bundled
 await esbuild.build({
   entryPoints: [
@@ -26,6 +29,10 @@ await esbuild.build({
   banner: {
     // Add shebang to the main entry point
     js: '',
+  },
+  // Inject version at build time
+  define: {
+    '__VERSION__': JSON.stringify(pkg.version),
   },
   // Log what we're doing
   logLevel: 'info',

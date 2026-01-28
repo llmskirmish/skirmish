@@ -14,11 +14,29 @@
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
+// Version injected at build time
+declare const __VERSION__: string;
+const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.0.0-dev';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
+
+// Known global flags
+const KNOWN_FLAGS = ['--help', '-h', '--version', '-V'];
+
+/**
+ * Warn about unknown flags
+ */
+function warnUnknownFlags(args: string[], knownFlags: string[]): void {
+  for (const arg of args) {
+    if (arg.startsWith('-') && !knownFlags.includes(arg)) {
+      console.warn(`Warning: Unknown option '${arg}'`);
+    }
+  }
+}
 
 function showHelp(): void {
   console.log(`
@@ -32,6 +50,10 @@ Commands:
   run            Run a match between two player scripts  
   validate       Validate a player script by running a test match
 
+Options:
+  --help, -h     Show this help message
+  --version, -V  Show version number
+
 Run 'skirmish <command> --help' for command-specific help.
 
 Examples:
@@ -43,7 +65,13 @@ Examples:
 }
 
 async function main(): Promise<void> {
+  if (command === '--version' || command === '-V') {
+    console.log(`skirmish v${VERSION}`);
+    process.exit(0);
+  }
+
   if (!command || command === '--help' || command === '-h') {
+    warnUnknownFlags(args, KNOWN_FLAGS);
     showHelp();
     process.exit(0);
   }

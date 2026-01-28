@@ -64,11 +64,15 @@ interface CLIOptions {
   maxTicks: number;
   stdout: boolean;
   help: boolean;
+  unknownFlags: string[];
 }
 
 /**
  * Parse command line arguments
  */
+// Known flags for this command
+const KNOWN_FLAGS = ['--p1', '--p2', '--p1-name', '--p2-name', '--map', '--seed', '--max-ticks', '--stdout', '--help', '-h'];
+
 function parseArgs(args: string[]): CLIOptions {
   const options: CLIOptions = {
     p1Name: 'Player 1',
@@ -76,7 +80,8 @@ function parseArgs(args: string[]): CLIOptions {
     map: 'swamp',
     maxTicks: 2000,
     stdout: false,
-    help: false
+    help: false,
+    unknownFlags: []
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -118,6 +123,11 @@ function parseArgs(args: string[]): CLIOptions {
       case '--help':
       case '-h':
         options.help = true;
+        break;
+      default:
+        if (arg.startsWith('-') && !KNOWN_FLAGS.includes(arg)) {
+          options.unknownFlags.push(arg);
+        }
         break;
     }
   }
@@ -283,6 +293,11 @@ function writeLocalLogs(
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const options = parseArgs(args);
+
+  // Warn about unknown flags
+  for (const flag of options.unknownFlags) {
+    console.warn(`Warning: Unknown option '${flag}'`);
+  }
 
   if (options.help) {
     showHelp();

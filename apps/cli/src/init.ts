@@ -26,7 +26,11 @@ const bundledMapsDir = join(cliRoot, 'maps');
 interface CLIOptions {
   directory: string;
   help: boolean;
+  unknownFlags: string[];
 }
+
+// Known flags for this command
+const KNOWN_FLAGS = ['--help', '-h'];
 
 /**
  * Parse command line arguments
@@ -34,7 +38,8 @@ interface CLIOptions {
 function parseArgs(args: string[]): CLIOptions {
   const options: CLIOptions = {
     directory: 'strategies',
-    help: false
+    help: false,
+    unknownFlags: []
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -44,6 +49,8 @@ function parseArgs(args: string[]): CLIOptions {
       options.help = true;
     } else if (!arg.startsWith('-')) {
       options.directory = arg;
+    } else if (!KNOWN_FLAGS.includes(arg)) {
+      options.unknownFlags.push(arg);
     }
   }
 
@@ -203,6 +210,11 @@ function extractDescription(content: string): string {
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const options = parseArgs(args);
+
+  // Warn about unknown flags
+  for (const flag of options.unknownFlags) {
+    console.warn(`Warning: Unknown option '${flag}'`);
+  }
 
   if (options.help) {
     showHelp();
