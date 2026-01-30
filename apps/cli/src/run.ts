@@ -18,10 +18,11 @@
  *   --seed <value>     Random seed for reproducibility
  *   --max-ticks <n>    Maximum ticks to run (default: 2000)
  *   --stdout           Output raw JSONL to stdout
+ *   --watch            Open the match in browser after running
  *   --help             Show this help
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
 import {
@@ -36,6 +37,7 @@ import {
   type TerrainData
 } from '@skirmish/engine';
 import { DEFAULT_MAP_SIZE } from '@skirmish/maps';
+import { watchMatch } from './watch.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,6 +65,7 @@ interface CLIOptions {
   seed?: string;
   maxTicks: number;
   stdout: boolean;
+  watch: boolean;
   help: boolean;
   unknownFlags: string[];
 }
@@ -71,7 +74,7 @@ interface CLIOptions {
  * Parse command line arguments
  */
 // Known flags for this command
-const KNOWN_FLAGS = ['--p1', '--p2', '--p1-name', '--p2-name', '--map', '--seed', '--max-ticks', '--stdout', '--help', '-h'];
+const KNOWN_FLAGS = ['--p1', '--p2', '--p1-name', '--p2-name', '--map', '--seed', '--max-ticks', '--stdout', '--watch', '--help', '-h'];
 
 function parseArgs(args: string[]): CLIOptions {
   const options: CLIOptions = {
@@ -80,6 +83,7 @@ function parseArgs(args: string[]): CLIOptions {
     map: 'swamp',
     maxTicks: 2000,
     stdout: false,
+    watch: false,
     help: false,
     unknownFlags: []
   };
@@ -120,6 +124,9 @@ function parseArgs(args: string[]): CLIOptions {
       case '--stdout':
         options.stdout = true;
         break;
+      case '--watch':
+        options.watch = true;
+        break;
       case '--help':
       case '-h':
         options.help = true;
@@ -157,12 +164,15 @@ Options:
   --map <name>       Map to use: swamp, empty (default: swamp)
   --max-ticks <n>    Maximum ticks to run (default: 2000)
   --stdout           Output raw JSONL to stdout (no log files)
+  --watch            Open the match in browser after running
   --help             Show this help
 
 Examples:
   skirmish run
   skirmish run --p1 ./bot1.js --p2 ./bot2.js
   skirmish run --p1 ./bot1.js --p2 ./bot2.js --map empty
+  skirmish run --watch
+  skirmish run --p1 ./bot1.js --p2 ./bot2.js --watch
 `);
 }
 
@@ -261,33 +271,78 @@ function executeMatch(
 }
 
 /**
- * Write logs to local directory
+ * Get the next match number by scanning existing log files
+ */
+function getNextMatchNumber(logDir: string): number {
+  if (!existsSync(logDir)) {
+    return 1;
+  }
+  
+  const files = readdirSync(logDir);
+  let maxNum = 0;
+  
+  for (const file of files) {
+    // Match pattern: match_{num}_{YYYYMMDD}_{HHMMSS}.log or .jsonl
+    const match = file.match(/^match_(\d+)_\d{8}_\d{6}\.(log|jsonl)$/);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (num > maxNum) {
+        maxNum = num;
+      }
+    }
+  }
+  
+  return maxNum + 1;
+}
+
+/**
+ * Write logs to local log/ and log_raw/ directories
+ * Returns the path to the raw JSONL log file
  */
 function writeLocalLogs(
   manager: MatchManager,
   terrain: TerrainData,
   seed: number,
   mapName: string
-): void {
+): string {
   const replay = manager.getReplay();
   
-  // Write to current directory
-  const logDir = process.cwd();
-  const timestamp = Date.now();
+  // Write to log/ and log_raw/ subdirectories
+  const logDir = join(process.cwd(), 'log');
+  const logRawDir = join(process.cwd(), 'log_raw');
+  
+  // Ensure directories exist
+  if (!existsSync(logDir)) {
+    mkdirSync(logDir, { recursive: true });
+  }
+  if (!existsSync(logRawDir)) {
+    mkdirSync(logRawDir, { recursive: true });
+  }
+  
+  // Get next match number from log_raw
+  const matchNum = getNextMatchNumber(logRawDir);
+  
+  // Format UTC date and time: YYYYMMDD_HHMMSS
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+  const time = now.toISOString().slice(11, 19).replace(/:/g, ''); // HHMMSS
+  const timestamp = `${date}_${time}`;
   
   // Generate raw JSONL log
   const rawLogger = new RawMatchLogger({ mapName });
   const rawLog = rawLogger.generateLog(replay, terrain, seed);
-  const rawLogPath = join(logDir, `match_${timestamp}.jsonl`);
+  const rawLogPath = join(logRawDir, `match_${matchNum}_${timestamp}.jsonl`);
   writeFileSync(rawLogPath, rawLog);
   console.log(`Raw log: ${rawLogPath}`);
   
   // Generate text log
   const textLogger = new MatchLogger({ mapName, verbose: false });
   const textLog = textLogger.generateLog(replay, seed);
-  const textLogPath = join(logDir, `match_${timestamp}.log`);
+  const textLogPath = join(logDir, `match_${matchNum}_${timestamp}.log`);
   writeFileSync(textLogPath, textLog);
   console.log(`Text log: ${textLogPath}`);
+  
+  return rawLogPath;
 }
 
 async function main(): Promise<void> {
@@ -371,7 +426,13 @@ async function main(): Promise<void> {
       }
 
       // Write local logs
-      writeLocalLogs(manager, terrain, seed, options.map);
+      const rawLogPath = writeLocalLogs(manager, terrain, seed, options.map);
+      
+      // Open in browser if --watch flag is set
+      if (options.watch) {
+        console.log('');
+        watchMatch(rawLogPath);
+      }
     }
 
   } catch (error) {

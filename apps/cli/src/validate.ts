@@ -171,7 +171,7 @@ function runValidationMatch(scriptToValidate: string): ValidationResult {
   // Check for script initialization errors
   const player1Runner = runners.get('player1');
   if (player1Runner?.hasInitError()) {
-    for (const runner of Array.from(runners.values())) {
+    for (const runner of runners.values()) {
       runner.destroy();
     }
     return {
@@ -218,7 +218,7 @@ function runValidationMatch(scriptToValidate: string): ValidationResult {
   }
   
   // Clean up runners
-  for (const runner of Array.from(runners.values())) {
+  for (const runner of runners.values()) {
     runner.destroy();
   }
   

@@ -9,6 +9,7 @@
  *   init          Create a strategies folder with example scripts
  *   run           Run a match between two player scripts
  *   validate      Validate a player script syntax by running a test match
+ *   watch         Watch a match replay in the browser
  */
 
 import { fileURLToPath } from 'url';
@@ -49,6 +50,7 @@ Commands:
   init           Create local folders for /strategies and /maps
   run            Run a match between two player scripts  
   validate       Validate a player script by running a test match
+  watch          Watch a match replay in the browser
 
 Options:
   --help, -h     Show this help message
@@ -59,8 +61,11 @@ Run 'skirmish <command> --help' for command-specific help.
 Examples:
   skirmish init
   skirmish run
-  skirmish run --p1 ./strategies/example_1.js --p2 ./strategies/example_2.js
+  skirmish run --p1 ./bot1.js --p2 ./bot2.js
+  skirmish run --p1 ./bot1.js --p2 ./bot2.js --watch
   skirmish validate ./my-strategy.js
+  skirmish watch
+  skirmish watch 1
 `);
 }
 
@@ -89,6 +94,11 @@ async function main(): Promise<void> {
     case 'validate':
       await import('./validate.js');
       break;
+    case 'watch': {
+      const { runCli } = await import('./watch.js');
+      await runCli();
+      break;
+    }
     default:
       console.error(`Unknown command: ${command}`);
       showHelp();
