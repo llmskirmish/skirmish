@@ -13,10 +13,15 @@
     "./server": {
       "types": "./dist/server/index.d.ts",
       "import": "./dist/server/index.js"
+    },
+    "./sandbox-runtime": {
+      "types": "./dist/runner/sandbox-runtime.bundle.d.ts",
+      "import": "./dist/runner/sandbox-runtime.bundle.js"
     }
   },
   "scripts": {
-    "build": "tsc",
+    "bundle-sandbox": "tsx scripts/bundle-sandbox.ts",
+    "build": "pnpm run bundle-sandbox && tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
@@ -43,6 +48,8 @@
     "@skirmish/typescript-config": "workspace:*",
     "@types/node": "^20.10.0",
     "@types/ws": "^8.5.10",
+    "esbuild": "^0.20.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
     "vitest": "^2.1.0"
   },

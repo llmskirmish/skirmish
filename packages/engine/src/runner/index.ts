@@ -1,11 +1,12 @@
 export { 
-  MatchStatelessRunner, 
+  BaseRunner,
+  type TickInput,
   type ScriptResult,
-  type PlayerCreep,
-  type GameGlobals
-} from './MatchStatelessRunner.js';
+  type SerializedObject
+} from './BaseRunner.js';
 
 export { 
-  MatchRunner,
-  type TickInput
+  MatchRunner
 } from './MatchRunner.js';
+
+export { sandboxRuntimeCode } from './sandbox-runtime.bundle.js';

@@ -845,11 +845,6 @@ export class MatchLogger {
         const targetStr = target ? this.formatObjectId(target) : `(${actionLog.build.x},${actionLog.build.y})`;
         actions.push(`${this.formatObjectId(obj)}: build -> ${targetStr}`);
       }
-      if (actionLog.repair) {
-        const target = this.findObjectAtPosition(currentObjects, actionLog.repair.x, actionLog.repair.y);
-        const targetStr = target ? this.formatObjectId(target) : `(${actionLog.repair.x},${actionLog.repair.y})`;
-        actions.push(`${this.formatObjectId(obj)}: repair -> ${targetStr}`);
-      }
     }
 
     // Output per-target damage summaries (or "destroyed by" if target was destroyed)

@@ -115,8 +115,8 @@ function loop() {
 |---------|-------------|
 | `skirmish init [dir]` | Create strategies and maps folders |
 | `skirmish run [options]` | Run a match between two scripts |
-| `skirmish watch [target]` | Watch a match replay in the browser |
 | `skirmish validate <script>` | Validate a script's syntax |
+| `skirmish view [id\|file]` | View a match replay in the browser |
 
 ### Run Options
 
@@ -128,16 +128,8 @@ function loop() {
 | `--p2-name <name>` | Player 2 name |
 | `--map <name>` | Map: `swamp` (default), `empty` |
 | `--max-ticks <n>` | Max ticks (default: 2000) |
-| `--stdout` | Output raw JSONL to stdout |
-| `--watch` | Open the match in browser after running |
-
-### Watch Options
-
-| Target | Description |
-|--------|-------------|
-| (none) | Watch the most recent match |
-| `<id>` | Watch match by ID (e.g., `skirmish watch 1`) |
-| `<file>` | Watch match from file path |
+| `--json` | Output raw JSONL to stdout |
+| `--view` | Open match in browser after running |
 
 ## Development
 

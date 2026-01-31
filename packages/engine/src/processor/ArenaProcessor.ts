@@ -21,15 +21,12 @@ import { processHarvest } from './intents/creeps/harvest.js';
 import { processMove, createMovementRegistry, applyMovements } from './intents/creeps/move.js';
 import { processCreepTick } from './intents/creeps/tick.js';
 import { processBuild } from './intents/creeps/build.js';
-import { processRepair } from './intents/creeps/repair.js';
-import { processDismantle } from './intents/creeps/dismantle.js';
 import { processTransfer } from './intents/creeps/transfer.js';
 import { processWithdraw } from './intents/creeps/withdraw.js';
 import { processDrop } from './intents/creeps/drop.js';
 import { processPickup } from './intents/creeps/pickup.js';
 import { processTowerAttack } from './intents/towers/attack.js';
 import { processTowerHeal } from './intents/towers/heal.js';
-import { processTowerRepair } from './intents/towers/repair.js';
 import { processTowerTick } from './intents/towers/tick.js';
 import { processSpawnCreep } from './intents/spawns/spawnCreep.js';
 import { processSetDirections } from './intents/spawns/setDirections.js';
@@ -46,7 +43,6 @@ export interface ActionLog {
   rangedHeal?: { x: number; y: number; id: string };
   harvest?: { x: number; y: number; id: string };
   build?: { x: number; y: number; id: string };
-  repair?: { x: number; y: number; id: string };
   transferEnergy?: { x: number; y: number; id: string };
   attacked?: boolean;
   healed?: boolean;
@@ -120,7 +116,6 @@ export class ArenaProcessor {
         rangedHeal: undefined,
         harvest: undefined,
         build: undefined,
-        repair: undefined,
         transferEnergy: undefined,
         attacked: undefined,
         healed: undefined,
@@ -242,9 +237,6 @@ export class ArenaProcessor {
           if (obj.actionLog.build) {
             actionLog.build = { x: obj.actionLog.build.x, y: obj.actionLog.build.y, id: '' };
           }
-          if (obj.actionLog.repair) {
-            actionLog.repair = { x: obj.actionLog.repair.x, y: obj.actionLog.repair.y, id: '' };
-          }
           if (obj.actionLog.transferEnergy) {
             actionLog.transferEnergy = { x: obj.actionLog.transferEnergy.x, y: obj.actionLog.transferEnergy.y, id: '' };
           }
@@ -323,12 +315,6 @@ export class ArenaProcessor {
           if (objIntents.build) {
             processBuild(creep, objIntents.build, { roomObjects, bulk, events, generateId });
           }
-          if (objIntents.repair) {
-            processRepair(creep, objIntents.repair, { roomObjects, bulk, events });
-          }
-          if (objIntents.dismantle) {
-            processDismantle(creep, objIntents.dismantle, { roomObjects, bulk, events });
-          }
           if (objIntents.transfer) {
             processTransfer(creep, objIntents.transfer, { roomObjects, bulk, events });
           }
@@ -353,9 +339,6 @@ export class ArenaProcessor {
           }
           if (objIntents.towerHeal) {
             processTowerHeal(tower, objIntents.towerHeal, { roomObjects, bulk, events });
-          }
-          if (objIntents.towerRepair) {
-            processTowerRepair(tower, objIntents.towerRepair, { roomObjects, bulk, events });
           }
         }
 

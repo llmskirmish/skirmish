@@ -1,19 +1,25 @@
 #!/usr/bin/env node
 /**
- * Initialize a strategies folder with example scripts
+ * Initialize Skirmish - register with server and create local files
  * 
  * Usage:
  *   skirmish init [directory]
  *   
  * Options:
+ *   --force            Overwrite existing credentials (creates new identity)
  *   --help             Show this help
  * 
- * Creates a strategies/ folder (or custom directory) with example bot scripts.
+ * Registers with the server to get an API key, then creates local strategy files.
  */
 
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve, basename } from 'path';
+import { parseArgs } from 'node:util';
+import { hasCredentials, saveCredentials, getCredentialsPath, API_BASE_URL } from './config.js';
+
+/** Write to stderr for status messages */
+const log = (...args: unknown[]) => console.error(...args);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,72 +29,56 @@ const cliRoot = join(__dirname, '..');
 const examplesDir = join(cliRoot, 'example_strategies');
 const bundledMapsDir = join(cliRoot, 'maps');
 
-interface CLIOptions {
-  directory: string;
-  help: boolean;
-  unknownFlags: string[];
-}
-
-// Known flags for this command
-const KNOWN_FLAGS = ['--help', '-h'];
-
-/**
- * Parse command line arguments
- */
-function parseArgs(args: string[]): CLIOptions {
-  const options: CLIOptions = {
-    directory: 'strategies',
-    help: false,
-    unknownFlags: []
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg === '--help' || arg === '-h') {
-      options.help = true;
-    } else if (!arg.startsWith('-')) {
-      options.directory = arg;
-    } else if (!KNOWN_FLAGS.includes(arg)) {
-      options.unknownFlags.push(arg);
-    }
-  }
-
-  return options;
-}
+const cliOptions = {
+  help: { type: 'boolean' as const, short: 'h', default: false },
+  force: { type: 'boolean' as const, short: 'f', default: false },
+};
 
 /**
  * Show help message
  */
 function showHelp(): void {
   console.log(`
-Skirmish Init - Create a strategies folder with example scripts
+Skirmish Init - Register and create local strategy files
 
 Usage:
   skirmish init [directory]
 
 Options:
-  --help             Show this help
+  -h, --help         Show this help
+  -f, --force        Overwrite existing credentials (creates new identity)
 
 Arguments:
-  directory          Target directory (default: strategies)
+  directory          Target directory for strategies (default: strategies)
 
 Description:
-  Creates a strategies folder with example bot scripts and a maps folder.
+  Registers with llmskirmish.com to create your identity, then creates
+  a strategies folder with example bot scripts and a maps folder.
   
-  The examples include:
-    - example_1.js   Aggressive melee rush strategy
-    - example_2.js   Defensive ranged kiting strategy
-  
-  The maps include:
-    - empty.json     Empty arena
-    - swamp.json     Arena with swamp terrain
+  Your API key is saved to ~/.skirmish/credentials.json
 
 Examples:
   skirmish init
   skirmish init ./bots
-  skirmish init my-strategies
+  skirmish init --force
 `);
+}
+
+/**
+ * Register with the server to get an API key
+ */
+async function registerWithServer(): Promise<{ username: string; apiKey: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error((error as { error?: string }).error || `Registration failed: ${response.statusText}`);
+  }
+
+  return response.json() as Promise<{ username: string; apiKey: string }>;
 }
 
 /**
@@ -164,7 +154,7 @@ function loadExamples(): Array<{ filename: string; content: string }> {
   const examples: Array<{ filename: string; content: string }> = [];
   
   if (!existsSync(examplesDir)) {
-    console.error(`Warning: Examples directory not found: ${examplesDir}`);
+    log(`Warning: Examples directory not found: ${examplesDir}`);
     return examples;
   }
   
@@ -185,7 +175,7 @@ function loadMaps(): Array<{ filename: string; content: string }> {
   const maps: Array<{ filename: string; content: string }> = [];
   
   if (!existsSync(bundledMapsDir)) {
-    console.error(`Warning: Maps directory not found: ${bundledMapsDir}`);
+    log(`Warning: Maps directory not found: ${bundledMapsDir}`);
     return maps;
   }
   
@@ -208,89 +198,131 @@ function extractDescription(content: string): string {
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const options = parseArgs(args);
-
-  // Warn about unknown flags
-  for (const flag of options.unknownFlags) {
-    console.warn(`Warning: Unknown option '${flag}'`);
+  let parsed;
+  try {
+    parsed = parseArgs({ args: process.argv.slice(2), options: cliOptions, allowPositionals: true, strict: true });
+  } catch (err) {
+    log(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
   }
 
-  if (options.help) {
+  const { values, positionals } = parsed;
+
+  if (values.help) {
     showHelp();
     process.exit(0);
   }
 
-  const targetDir = resolve(options.directory);
+  // Check for existing credentials
+  if (hasCredentials() && !values.force) {
+    log(`Credentials already exist at ${getCredentialsPath()}`);
+    log(`Run with --force to overwrite (this will create a new identity)`);
+    process.exit(1);
+  }
+
+  // Register with server
+  log(`Registering with ${API_BASE_URL}...`);
+  
+  let username: string;
+  let apiKey: string;
+  
+  try {
+    const result = await registerWithServer();
+    username = result.username;
+    apiKey = result.apiKey;
+  } catch (err) {
+    log(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+
+  // Save credentials
+  saveCredentials({
+    apiKey,
+    createdAt: new Date().toISOString(),
+  });
+
+  log(`Username: ${username}`);
+  log(`API Key: ${apiKey}`);
+  log(`Saved to ${getCredentialsPath()}`);
+  log('');
+
+  const directory = positionals[0] || 'strategies';
+  const targetDir = resolve(directory);
 
   // Load examples and maps from bundled directories
   const examples = loadExamples();
   const maps = loadMaps();
   
   if (examples.length === 0) {
-    console.error('Error: No example scripts found');
-    process.exit(1);
+    log('Warning: No example scripts found, skipping local file creation');
+    log('');
+    log('Change your username: skirmish profile set --username yourname');
+    log(`Or visit: ${API_BASE_URL}/profile`);
+    return;
   }
 
   // Create strategies directory if it doesn't exist
   if (existsSync(targetDir)) {
-    console.log(`${options.directory}/ already exists`);
+    log(`${directory}/ already exists`);
   } else {
     mkdirSync(targetDir, { recursive: true });
-    console.log(`Created ${options.directory}/`);
+    log(`Created ${directory}/`);
   }
 
   // Write example files if they don't exist
   for (const example of examples) {
     const filePath = join(targetDir, example.filename);
     if (existsSync(filePath)) {
-      console.log(`  ${example.filename} already exists, skipping`);
+      log(`  ${example.filename} already exists, skipping`);
     } else {
       writeFileSync(filePath, example.content);
       const description = extractDescription(example.content);
-      console.log(`  ${example.filename} - ${description}`);
+      log(`  ${example.filename} - ${description}`);
     }
   }
 
   // Write README if it doesn't exist
   const readmePath = join(targetDir, 'README.md');
   if (existsSync(readmePath)) {
-    console.log(`  README.md already exists, skipping`);
+    log(`  README.md already exists, skipping`);
   } else {
     writeFileSync(readmePath, README_CONTENT);
-    console.log(`  README.md - Documentation`);
+    log(`  README.md - Documentation`);
   }
 
   // Create maps directory if it doesn't exist
   if (maps.length > 0) {
     const mapsTargetDir = resolve('maps');
     if (existsSync(mapsTargetDir)) {
-      console.log(`maps/ already exists`);
+      log(`maps/ already exists`);
     } else {
       mkdirSync(mapsTargetDir, { recursive: true });
-      console.log(`Created maps/`);
+      log(`Created maps/`);
     }
 
     // Write map files if they don't exist
     for (const map of maps) {
       const filePath = join(mapsTargetDir, map.filename);
       if (existsSync(filePath)) {
-        console.log(`  ${map.filename} already exists, skipping`);
+        log(`  ${map.filename} already exists, skipping`);
       } else {
         writeFileSync(filePath, map.content);
         try {
           const mapData = JSON.parse(map.content);
-          console.log(`  ${map.filename} - ${mapData.name || 'Map'}`);
+          log(`  ${map.filename} - ${mapData.name || 'Map'}`);
         } catch {
-          console.log(`  ${map.filename}`);
+          log(`  ${map.filename}`);
         }
       }
     }
   }
 
-  console.log('');
-  console.log('Get started:');
-  console.log(`  skirmish run --p1 ./${options.directory}/example_1.js --p2 ./${options.directory}/example_2.js`);
+  log('');
+  log('Get started:');
+  log(`  skirmish run --p1 ./${directory}/example_1.js --p2 ./${directory}/example_2.js`);
+  log('');
+  log('Change your username: skirmish profile set --username yourname');
+  log(`Or visit: ${API_BASE_URL}/profile`);
 }
 
 main();

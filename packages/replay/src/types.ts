@@ -28,7 +28,6 @@ export interface ActionLog {
   rangedHeal?: ActionTarget;
   harvest?: ActionTarget;
   build?: ActionTarget;
-  repair?: ActionTarget;
   transferEnergy?: ActionTarget;
   attacked?: boolean;
   healed?: boolean;

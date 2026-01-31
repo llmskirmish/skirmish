@@ -21,8 +21,6 @@ export const ERR_INVALID_ARGS = -10;
 export const ERR_TIRED = -11;
 export const ERR_NO_BODYPART = -12;
 export const ERR_NOT_ENOUGH_EXTENSIONS = -6;
-export const ERR_RCL_NOT_ENOUGH = -14;
-export const ERR_GCL_NOT_ENOUGH = -15;
 
 // Body part types
 export const MOVE = 'move' as const;
@@ -32,7 +30,6 @@ export const ATTACK = 'attack' as const;
 export const CARRY = 'carry' as const;
 export const TOUGH = 'tough' as const;
 export const WORK = 'work' as const;
-export const CLAIM = 'claim' as const;
 
 export type BodyPartType = 
   | typeof MOVE 
@@ -41,8 +38,7 @@ export type BodyPartType =
   | typeof ATTACK 
   | typeof CARRY 
   | typeof TOUGH 
-  | typeof WORK
-  | typeof CLAIM;
+  | typeof WORK;
 
 // Direction constants
 export const TOP = 1;
@@ -114,10 +110,6 @@ export const ATTACK_POWER = 30;
 export const HEAL_POWER = 12;
 export const RANGED_HEAL_POWER = 4;
 export const CARRY_CAPACITY = 50;
-export const REPAIR_POWER = 100;
-export const DISMANTLE_POWER = 50;
-export const REPAIR_COST = 0.01;
-export const DISMANTLE_COST = 0.005;
 export const HARVEST_POWER = 2;
 export const BUILD_POWER = 5;
 
@@ -139,7 +131,6 @@ export const TOWER_HITS = 3000;
 export const TOWER_CAPACITY = 50;
 export const TOWER_POWER_ATTACK = 150;
 export const TOWER_POWER_HEAL = 100;
-export const TOWER_POWER_REPAIR = 200;
 export const TOWER_OPTIMAL_RANGE = 5;
 export const TOWER_FALLOFF_RANGE = 20;
 export const TOWER_FALLOFF = 0.75;
@@ -153,8 +144,7 @@ export const BODYPART_COST: Record<BodyPartType, number> = {
   [ATTACK]: 80,
   [RANGED_ATTACK]: 150,
   [HEAL]: 250,
-  [TOUGH]: 10,
-  [CLAIM]: 600
+  [TOUGH]: 10
 };
 
 // Creep stats
@@ -240,7 +230,6 @@ export const EVENT_ATTACK_CONTROLLER = 3;
 export const EVENT_BUILD = 4;
 export const EVENT_HARVEST = 5;
 export const EVENT_HEAL = 6;
-export const EVENT_REPAIR = 7;
 export const EVENT_RESERVE_CONTROLLER = 8;
 export const EVENT_UPGRADE_CONTROLLER = 9;
 export const EVENT_EXIT = 10;
@@ -250,7 +239,6 @@ export const EVENT_WITHDRAW = 13;
 export const EVENT_PICKUP = 14;
 export const EVENT_DROP = 15;
 export const EVENT_PULL = 16;
-export const EVENT_DISMANTLE = 17;
 export const EVENT_DESTROY = 18;
 export const EVENT_CREATE_CREEP = 19;
 
@@ -271,8 +259,6 @@ export const C = {
   ERR_TIRED,
   ERR_NO_BODYPART,
   ERR_NOT_ENOUGH_EXTENSIONS,
-  ERR_RCL_NOT_ENOUGH,
-  ERR_GCL_NOT_ENOUGH,
   MOVE,
   RANGED_ATTACK,
   HEAL,
@@ -280,7 +266,6 @@ export const C = {
   CARRY,
   TOUGH,
   WORK,
-  CLAIM,
   TOP,
   TOP_RIGHT,
   RIGHT,
@@ -327,10 +312,6 @@ export const C = {
   HEAL_POWER,
   RANGED_HEAL_POWER,
   CARRY_CAPACITY,
-  REPAIR_POWER,
-  DISMANTLE_POWER,
-  REPAIR_COST,
-  DISMANTLE_COST,
   HARVEST_POWER,
   BUILD_POWER,
   OBSTACLE_OBJECT_TYPES,
@@ -340,7 +321,6 @@ export const C = {
   TOWER_CAPACITY,
   TOWER_POWER_ATTACK,
   TOWER_POWER_HEAL,
-  TOWER_POWER_REPAIR,
   TOWER_OPTIMAL_RANGE,
   TOWER_FALLOFF_RANGE,
   TOWER_FALLOFF,
@@ -376,7 +356,6 @@ export const C = {
   EVENT_BUILD,
   EVENT_HARVEST,
   EVENT_HEAL,
-  EVENT_REPAIR,
   EVENT_RESERVE_CONTROLLER,
   EVENT_UPGRADE_CONTROLLER,
   EVENT_EXIT,
@@ -386,7 +365,6 @@ export const C = {
   EVENT_PICKUP,
   EVENT_DROP,
   EVENT_PULL,
-  EVENT_DISMANTLE,
   EVENT_DESTROY,
   EVENT_CREATE_CREEP,
   // Players

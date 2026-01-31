@@ -45,7 +45,6 @@ export interface InternalActionLog {
   rangedHeal?: { x: number; y: number };
   harvest?: { x: number; y: number };
   build?: { x: number; y: number };
-  repair?: { x: number; y: number };
   transferEnergy?: { x: number; y: number };
   attacked?: { x: number; y: number };
   healed?: { x: number; y: number };
@@ -308,8 +307,6 @@ export interface ObjectIntents {
   // Creep resource operations
   harvest?: { id: string };
   build?: { id: string };
-  repair?: { id: string };
-  dismantle?: { id: string };
   transfer?: { id: string; resourceType: string; amount?: number };
   withdraw?: { id: string; resourceType: string; amount?: number };
   drop?: { resourceType: string; amount?: number };
@@ -324,7 +321,6 @@ export interface ObjectIntents {
   // Tower operations
   towerAttack?: { id: string };
   towerHeal?: { id: string };
-  towerRepair?: { id: string };
   
   // Construction operations
   createConstructionSite?: { x: number; y: number; structureType: string; id: string };

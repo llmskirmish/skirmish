@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Watch a match replay in the browser
+ * View a match replay in the browser
  * 
  * Usage:
- *   skirmish watch              Watch the most recent match
- *   skirmish watch <id>         Watch match by ID (e.g., skirmish watch 1)
- *   skirmish watch <file>       Watch match from file path
+ *   skirmish view              View the most recent match
+ *   skirmish view <id>         View match by ID (e.g., skirmish view 1)
+ *   skirmish view <file>       View match from file path
  *   
  * Options:
  *   --help             Show this help
@@ -17,65 +17,36 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, resolve, basename, dirname } from 'path';
 import { gzipSync } from 'zlib';
 import { exec } from 'child_process';
+import { parseArgs } from 'node:util';
 
-interface CLIOptions {
-  target?: string;
-  port?: number;
-  help: boolean;
-  unknownFlags: string[];
-}
+/** Write to stderr for status messages */
+const log = (...args: unknown[]) => console.error(...args);
 
-// Known flags for this command
-const KNOWN_FLAGS = ['--help', '-h', '--port'];
-
-/**
- * Parse command line arguments
- */
-function parseArgs(args: string[]): CLIOptions {
-  const options: CLIOptions = {
-    help: false,
-    unknownFlags: []
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    const nextArg = args[i + 1];
-
-    if (arg === '--help' || arg === '-h') {
-      options.help = true;
-    } else if (arg === '--port') {
-      options.port = parseInt(nextArg, 10);
-      i++;
-    } else if (!arg.startsWith('-') && !options.target) {
-      options.target = arg;
-    } else if (arg.startsWith('-') && !KNOWN_FLAGS.includes(arg)) {
-      options.unknownFlags.push(arg);
-    }
-  }
-
-  return options;
-}
+const cliOptions = {
+  port: { type: 'string' as const },
+  help: { type: 'boolean' as const, short: 'h', default: false },
+};
 
 /**
  * Show help message
  */
 function showHelp(): void {
   console.log(`
-Skirmish Watch - Watch match replays in the browser
+Skirmish View - View match replays in the browser
 
 Usage:
-  skirmish watch              Watch the most recent match
-  skirmish watch <id>         Watch match by ID (e.g., skirmish watch 1)
-  skirmish watch <file>       Watch match from file path
+  skirmish view              View the most recent match
+  skirmish view <id>         View match by ID (e.g., skirmish view 1)
+  skirmish view <file>       View match from file path
 
 Options:
-  --help             Show this help
+  -h, --help         Show this help
 
 Examples:
-  skirmish watch                                    # Watch most recent match
-  skirmish watch 1                                  # Watch match ID 1
-  skirmish watch match_1_20260130_204850.jsonl      # Watch specific file
-  skirmish watch ./log_raw/match_1_20260130.jsonl   # Watch from path
+  skirmish view                                    # View most recent match
+  skirmish view 1                                  # View match ID 1
+  skirmish view match_1_20260130_204850.jsonl      # View specific file
+  skirmish view ./log_raw/match_1_20260130.jsonl   # View from path
 `);
 }
 
@@ -207,73 +178,106 @@ function openBrowser(url: string): void {
 
   exec(command, (error) => {
     if (error) {
-      console.error(`Failed to open browser: ${error.message}`);
-      console.log(`Please open manually: ${url}`);
+      log(`Failed to open browser: ${error.message}`);
+      log(`Please open manually: ${url}`);
     }
   });
 }
 
+export interface ViewMatchOptions {
+  /** Port for local development (uses localhost instead of llmskirmish.com) */
+  port?: number;
+}
+
 /**
- * Watch a match - main export for use by run command
+ * View a match - main export for use by run command
  * @param matchFilePath Path to the JSONL match file
- * @param port Optional port for local development (uses localhost instead of llmskirmish.com)
+ * @param options Optional configuration
  */
-export function watchMatch(matchFilePath: string, port?: number): void {
+export function viewMatch(matchFilePath: string, options?: ViewMatchOptions): void {
+  const { port } = options ?? {};
   const content = readFileSync(matchFilePath, 'utf-8');
+  
+  // Extract player names from meta line (first line of JSONL)
+  let p1Name: string | undefined;
+  let p2Name: string | undefined;
+  try {
+    const firstLine = content.split('\n')[0];
+    const meta = JSON.parse(firstLine);
+    if (meta.type === 'meta' && Array.isArray(meta.config?.players)) {
+      p1Name = meta.config.players[0]?.name;
+      p2Name = meta.config.players[1]?.name;
+    }
+  } catch {
+    // Ignore parse errors, just skip player names
+  }
+  
   const encoded = compressForUrl(content);
   
   const baseUrl = port 
     ? `http://localhost:${port}` 
     : 'https://llmskirmish.com';
-  const url = `${baseUrl}/localmatch#data=${encoded}`;
   
-  console.log(`Opening match: ${basename(matchFilePath)}`);
-  console.log(`URL length: ${url.length.toLocaleString()} characters`);
+  // Build query string with player names
+  const params = new URLSearchParams();
+  if (p1Name) params.set('p1', p1Name);
+  if (p2Name) params.set('p2', p2Name);
+  const queryString = params.toString();
+  
+  const url = `${baseUrl}/localmatch${queryString ? '?' + queryString : ''}#data=${encoded}`;
+  
+  log(`Opening match: ${basename(matchFilePath)}`);
+  log(`URL length: ${url.length.toLocaleString()} characters`);
   
   if (url.length > 65536) {
-    console.warn(`Warning: URL is ${(url.length / 1024).toFixed(1)}KB - may not work in all browsers`);
+    log(`Warning: URL is ${(url.length / 1024).toFixed(1)}KB - may not work in all browsers`);
   }
   
   openBrowser(url);
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const options = parseArgs(args);
-
-  // Warn about unknown flags
-  for (const flag of options.unknownFlags) {
-    console.warn(`Warning: Unknown option '${flag}'`);
+  let parsed;
+  try {
+    parsed = parseArgs({ args: process.argv.slice(2), options: cliOptions, allowPositionals: true, strict: true });
+  } catch (err) {
+    log(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
   }
 
-  if (options.help) {
+  const { values, positionals } = parsed;
+
+  if (values.help) {
     showHelp();
     process.exit(0);
   }
 
+  const target = positionals[0];
+  const port = values.port ? parseInt(values.port, 10) : undefined;
+
   try {
-    const matchPath = findMatchFile(options.target);
+    const matchPath = findMatchFile(target);
     
     if (!matchPath) {
-      if (options.target) {
-        console.error(`Match not found: ${options.target}`);
-        console.error('');
-        console.error('Try:');
-        console.error('  skirmish watch        # Watch most recent match');
-        console.error('  skirmish watch 1      # Watch match ID 1');
+      if (target) {
+        log(`Match not found: ${target}`);
+        log('');
+        log('Try:');
+        log('  skirmish view        # View most recent match');
+        log('  skirmish view 1      # View match ID 1');
       } else {
-        console.error('No matches found in log_raw/');
-        console.error('');
-        console.error('Run a match first:');
-        console.error('  skirmish run');
+        log('No matches found in log_raw/');
+        log('');
+        log('Run a match first:');
+        log('  skirmish run');
       }
       process.exit(1);
     }
 
-    watchMatch(matchPath, options.port);
+    viewMatch(matchPath, { port });
 
   } catch (error) {
-    console.error('Error:', error instanceof Error ? error.message : String(error));
+    log('Error:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

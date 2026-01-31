@@ -15,6 +15,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
+import { parseArgs } from 'node:util';
 import {
   MatchManager,
   MatchRunner,
@@ -24,6 +25,9 @@ import {
   type MatchConfig,
 } from '@skirmish/engine';
 import { DEFAULT_MAP_SIZE } from '@skirmish/maps';
+
+/** Write to stderr for status messages */
+const log = (...args: unknown[]) => console.error(...args);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,43 +46,14 @@ function getMapsDir(): string {
 // Examples directory - bundled with CLI
 const examplesDir = join(cliRoot, 'example_strategies');
 
-interface CLIOptions {
-  scriptPath?: string;
-  help: boolean;
-  unknownFlags: string[];
-}
-
 interface ValidationResult {
   success: boolean;
   error?: string;
 }
 
-// Known flags for this command
-const KNOWN_FLAGS = ['--help', '-h'];
-
-/**
- * Parse command line arguments
- */
-function parseArgs(args: string[]): CLIOptions {
-  const options: CLIOptions = {
-    help: false,
-    unknownFlags: []
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg === '--help' || arg === '-h') {
-      options.help = true;
-    } else if (!arg.startsWith('-') && !options.scriptPath) {
-      options.scriptPath = arg;
-    } else if (arg.startsWith('-') && !KNOWN_FLAGS.includes(arg)) {
-      options.unknownFlags.push(arg);
-    }
-  }
-
-  return options;
-}
+const cliOptions = {
+  help: { type: 'boolean' as const, short: 'h', default: false },
+};
 
 /**
  * Show help message
@@ -91,15 +66,15 @@ Usage:
   skirmish validate <script-path>
 
 Options:
-  --help             Show this help
+  -h, --help         Show this help
 
 Description:
   The script is validated by running it in a 500-tick test match against
   a bundled example script. The script under validation plays as player1.
 
-  Returns:
-    - Success: "true" if no runtime errors occurred
-    - Failure: "false" followed by the JavaScript error message
+  Output (JSON to stdout):
+    {"valid": true, "error": null}
+    {"valid": false, "error": "..."}
 
 Examples:
   skirmish validate ./my-strategy.js
@@ -233,40 +208,43 @@ function runValidationMatch(scriptToValidate: string): ValidationResult {
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const options = parseArgs(args);
-
-  // Warn about unknown flags
-  for (const flag of options.unknownFlags) {
-    console.warn(`Warning: Unknown option '${flag}'`);
+  let parsed;
+  try {
+    parsed = parseArgs({ args: process.argv.slice(2), options: cliOptions, allowPositionals: true, strict: true });
+  } catch (err) {
+    log(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
   }
 
-  if (options.help) {
+  const { values, positionals } = parsed;
+
+  if (values.help) {
     showHelp();
     process.exit(0);
   }
 
-  if (!options.scriptPath) {
-    console.error('Error: Script path is required');
+  const scriptPath = positionals[0];
+
+  if (!scriptPath) {
+    log('Error: Script path is required');
     showHelp();
     process.exit(1);
   }
 
   try {
-    const script = loadScript(options.scriptPath);
+    const script = loadScript(scriptPath);
     const result = runValidationMatch(script);
     
     if (result.success) {
-      console.log('true');
+      console.log(JSON.stringify({ valid: true, error: null }));
       process.exit(0);
     } else {
-      console.log('false');
-      console.log(result.error);
+      console.log(JSON.stringify({ valid: false, error: result.error }));
       process.exit(1);
     }
   } catch (error) {
-    console.log('false');
-    console.log(error instanceof Error ? error.message : String(error));
+    const message = error instanceof Error ? error.message : String(error);
+    console.log(JSON.stringify({ valid: false, error: message }));
     process.exit(1);
   }
 }

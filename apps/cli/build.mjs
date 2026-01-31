@@ -11,7 +11,7 @@ await esbuild.build({
     'src/init.ts',
     'src/run.ts',
     'src/validate.ts',
-    'src/watch.ts',
+    'src/view.ts',
   ],
   bundle: true,
   platform: 'node',

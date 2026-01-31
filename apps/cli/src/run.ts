@@ -15,16 +15,16 @@
  *   --p1-name <name>   Player 1 name (default: Player 1)
  *   --p2-name <name>   Player 2 name (default: Player 2)
  *   --map <name>       Map to use (default: swamp)
- *   --seed <value>     Random seed for reproducibility
  *   --max-ticks <n>    Maximum ticks to run (default: 2000)
- *   --stdout           Output raw JSONL to stdout
- *   --watch            Open the match in browser after running
+ *   --json             Output raw JSONL to stdout (no log files, no progress)
+ *   --view             Open the match in browser after running
  *   --help             Show this help
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join, resolve } from 'path';
+import { parseArgs } from 'node:util';
 import {
   MatchManager,
   MatchRunner,
@@ -37,7 +37,10 @@ import {
   type TerrainData
 } from '@skirmish/engine';
 import { DEFAULT_MAP_SIZE } from '@skirmish/maps';
-import { watchMatch } from './watch.js';
+import { viewMatch } from './view.js';
+
+/** Write to stderr for status messages */
+const log = (...args: unknown[]) => console.error(...args);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -56,91 +59,18 @@ function getMapsDir(): string {
 // Examples directory - bundled with CLI
 const examplesDir = join(cliRoot, 'example_strategies');
 
-interface CLIOptions {
-  p1Script?: string;
-  p2Script?: string;
-  p1Name: string;
-  p2Name: string;
-  map: string;
-  seed?: string;
-  maxTicks: number;
-  stdout: boolean;
-  watch: boolean;
-  help: boolean;
-  unknownFlags: string[];
-}
-
-/**
- * Parse command line arguments
- */
-// Known flags for this command
-const KNOWN_FLAGS = ['--p1', '--p2', '--p1-name', '--p2-name', '--map', '--seed', '--max-ticks', '--stdout', '--watch', '--help', '-h'];
-
-function parseArgs(args: string[]): CLIOptions {
-  const options: CLIOptions = {
-    p1Name: 'Player 1',
-    p2Name: 'Player 2',
-    map: 'swamp',
-    maxTicks: 2000,
-    stdout: false,
-    watch: false,
-    help: false,
-    unknownFlags: []
-  };
-
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    const nextArg = args[i + 1];
-
-    switch (arg) {
-      case '--p1':
-        options.p1Script = nextArg;
-        i++;
-        break;
-      case '--p2':
-        options.p2Script = nextArg;
-        i++;
-        break;
-      case '--p1-name':
-        options.p1Name = nextArg;
-        i++;
-        break;
-      case '--p2-name':
-        options.p2Name = nextArg;
-        i++;
-        break;
-      case '--map':
-        options.map = nextArg;
-        i++;
-        break;
-      case '--seed':
-        options.seed = nextArg;
-        i++;
-        break;
-      case '--max-ticks':
-        options.maxTicks = parseInt(nextArg, 10);
-        i++;
-        break;
-      case '--stdout':
-        options.stdout = true;
-        break;
-      case '--watch':
-        options.watch = true;
-        break;
-      case '--help':
-      case '-h':
-        options.help = true;
-        break;
-      default:
-        if (arg.startsWith('-') && !KNOWN_FLAGS.includes(arg)) {
-          options.unknownFlags.push(arg);
-        }
-        break;
-    }
-  }
-
-  return options;
-}
+const cliOptions = {
+  p1: { type: 'string' as const },
+  p2: { type: 'string' as const },
+  'p1-name': { type: 'string' as const, default: 'Player 1' },
+  'p2-name': { type: 'string' as const, default: 'Player 2' },
+  map: { type: 'string' as const, short: 'm', default: 'swamp' },
+  seed: { type: 'string' as const },  // undocumented
+  'max-ticks': { type: 'string' as const, short: 't', default: '2000' },
+  json: { type: 'boolean' as const, default: false },
+  view: { type: 'boolean' as const, default: false },
+  help: { type: 'boolean' as const, short: 'h', default: false },
+};
 
 /**
  * Show help message
@@ -161,18 +91,18 @@ Options:
   --p2 <path>        Player 2 script
   --p1-name <name>   Player 1 name (default: Player 1)
   --p2-name <name>   Player 2 name (default: Player 2)
-  --map <name>       Map to use: swamp, empty (default: swamp)
-  --max-ticks <n>    Maximum ticks to run (default: 2000)
-  --stdout           Output raw JSONL to stdout (no log files)
-  --watch            Open the match in browser after running
-  --help             Show this help
+  -m, --map <name>   Map to use: swamp, empty (default: swamp)
+  -t, --max-ticks    Maximum ticks to run (default: 2000)
+  --json             Output raw JSONL to stdout (no log files)
+  --view             Open the match in browser after running
+  -h, --help         Show this help
 
 Examples:
   skirmish run
   skirmish run --p1 ./bot1.js --p2 ./bot2.js
-  skirmish run --p1 ./bot1.js --p2 ./bot2.js --map empty
-  skirmish run --watch
-  skirmish run --p1 ./bot1.js --p2 ./bot2.js --watch
+  skirmish run --p1 ./bot1.js --p2 ./bot2.js -m empty
+  skirmish run --view
+  skirmish run --p1 ./bot1.js --p2 ./bot2.js --json | jq
 `);
 }
 
@@ -253,7 +183,7 @@ function executeMatch(
         }
 
         if (result.error) {
-          console.error(`\n[${player.name}] Error at tick ${tick}: ${result.error}`);
+          log(`\n[${player.name}] Error at tick ${tick}: ${result.error}`);
         }
       }
     }
@@ -333,63 +263,75 @@ function writeLocalLogs(
   const rawLog = rawLogger.generateLog(replay, terrain, seed);
   const rawLogPath = join(logRawDir, `match_${matchNum}_${timestamp}.jsonl`);
   writeFileSync(rawLogPath, rawLog);
-  console.log(`Raw log: ${rawLogPath}`);
+  log(`Raw log: ${rawLogPath}`);
   
   // Generate text log
   const textLogger = new MatchLogger({ mapName, verbose: false });
   const textLog = textLogger.generateLog(replay, seed);
   const textLogPath = join(logDir, `match_${matchNum}_${timestamp}.log`);
   writeFileSync(textLogPath, textLog);
-  console.log(`Text log: ${textLogPath}`);
+  log(`Text log: ${textLogPath}`);
   
   return rawLogPath;
 }
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const options = parseArgs(args);
-
-  // Warn about unknown flags
-  for (const flag of options.unknownFlags) {
-    console.warn(`Warning: Unknown option '${flag}'`);
+  let parsed;
+  try {
+    parsed = parseArgs({ args: process.argv.slice(2), options: cliOptions, strict: true });
+  } catch (err) {
+    log(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
   }
 
-  if (options.help) {
+  const { values } = parsed;
+
+  if (values.help) {
     showHelp();
     process.exit(0);
   }
 
+  const p1Script = values.p1;
+  const p2Script = values.p2;
+  const p1Name = values['p1-name']!;
+  const p2Name = values['p2-name']!;
+  const mapName = values.map!;
+  const seedStr = values.seed;
+  const maxTicks = parseInt(values['max-ticks']!, 10);
+  const jsonOutput = values.json;
+  const openView = values.view;
+
   try {
     // Load scripts - use examples if not specified
-    const player1Script = options.p1Script 
-      ? loadScript(options.p1Script)
+    const player1Script = p1Script 
+      ? loadScript(p1Script)
       : loadExampleScript('example_1');
     
-    const player2Script = options.p2Script
-      ? loadScript(options.p2Script)
+    const player2Script = p2Script
+      ? loadScript(p2Script)
       : loadExampleScript('example_2');
 
-    // Log what we're doing
-    if (!options.stdout) {
-      console.log(`Match: ${options.p1Name} vs ${options.p2Name}`);
-      console.log(`P1: ${options.p1Script || '(bundled example)'}`);
-      console.log(`P2: ${options.p2Script || '(bundled example)'}`);
-      console.log(`Map: ${options.map}`);
+    // Log what we're doing (to stderr)
+    if (!jsonOutput) {
+      log(`Match: ${p1Name} vs ${p2Name}`);
+      log(`P1: ${p1Script || '(bundled example)'}`);
+      log(`P2: ${p2Script || '(bundled example)'}`);
+      log(`Map: ${mapName}`);
     }
 
     // Load map
-    const map = loadMap(options.map, getMapsDir());
+    const map = loadMap(mapName, getMapsDir());
     const terrain = convertTerrain(map);
-    const seed = options.seed ? hashStringToSeed(options.seed) : Math.floor(Math.random() * 0x7FFFFFFF);
+    const seed = seedStr ? hashStringToSeed(seedStr) : Math.floor(Math.random() * 0x7FFFFFFF);
 
     const config: MatchConfig = {
       arenaWidth: DEFAULT_MAP_SIZE,
       arenaHeight: DEFAULT_MAP_SIZE,
-      maxTicks: options.maxTicks,
+      maxTicks: maxTicks,
       tickDuration: 1000,
       players: [
-        { id: 'player1', name: options.p1Name, slug: 'player1', script: player1Script },
-        { id: 'player2', name: options.p2Name, slug: 'player2', script: player2Script }
+        { id: 'player1', name: p1Name, slug: 'player1', script: player1Script },
+        { id: 'player2', name: p2Name, slug: 'player2', script: player2Script }
       ],
       terrain,
       initialObjects: createInitialObjects(map),
@@ -398,45 +340,45 @@ async function main(): Promise<void> {
 
     const manager = new MatchManager(config, undefined);
 
-    if (options.stdout) {
-      // Output raw JSONL to stdout
-      executeMatch(manager, config, options.maxTicks);
-      const logger = new RawMatchLogger({ mapName: options.map });
-      const log = logger.generateLog(manager.getReplay(), terrain, seed);
-      console.log(log);
+    if (jsonOutput) {
+      // Output raw JSONL to stdout (clean, no progress)
+      executeMatch(manager, config, maxTicks);
+      const rawLogger = new RawMatchLogger({ mapName });
+      const jsonlOutput = rawLogger.generateLog(manager.getReplay(), terrain, seed);
+      console.log(jsonlOutput);
     } else {
-      // Progress output
-      console.log(`Seed: ${seed}`);
-      console.log('');
+      // Progress output (to stderr)
+      log(`Seed: ${seed}`);
+      log('');
       
       let dotCount = 0;
-      executeMatch(manager, config, options.maxTicks, () => {
-        process.stdout.write('.');
-        if (++dotCount % 100 === 0) process.stdout.write(` [${dotCount}]\n`);
+      executeMatch(manager, config, maxTicks, () => {
+        process.stderr.write('.');
+        if (++dotCount % 100 === 0) process.stderr.write(` [${dotCount}]\n`);
       });
-      if (dotCount % 100 !== 0) console.log(` [${dotCount}]`);
-      console.log('');
+      if (dotCount % 100 !== 0) log(` [${dotCount}]`);
+      log('');
 
       const victory = manager.getVictory();
       if (victory) {
         const winnerName = victory.winner 
           ? config.players.find(p => p.id === victory.winner)?.name || victory.winner
           : 'DRAW';
-        console.log(`Result: ${winnerName} (${victory.reason})`);
+        log(`Result: ${winnerName} (${victory.reason})`);
       }
 
       // Write local logs
-      const rawLogPath = writeLocalLogs(manager, terrain, seed, options.map);
+      const rawLogPath = writeLocalLogs(manager, terrain, seed, mapName);
       
-      // Open in browser if --watch flag is set
-      if (options.watch) {
-        console.log('');
-        watchMatch(rawLogPath);
+      // Open in browser if --view flag is set
+      if (openView) {
+        log('');
+        viewMatch(rawLogPath);
       }
     }
 
   } catch (error) {
-    console.error('Error:', error instanceof Error ? error.message : String(error));
+    log('Error:', error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }

@@ -9,7 +9,7 @@
  *   init          Create a strategies folder with example scripts
  *   run           Run a match between two player scripts
  *   validate      Validate a player script syntax by running a test match
- *   watch         Watch a match replay in the browser
+ *   view          View a match replay in the browser
  */
 
 import { fileURLToPath } from 'url';
@@ -22,51 +22,14 @@ const VERSION = typeof __VERSION__ !== 'undefined' ? __VERSION__ : '0.0.0-dev';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/** Write to stderr for status messages */
+const log = (...args: unknown[]) => console.error(...args);
+
 const command = process.argv[2];
 const args = process.argv.slice(3);
 
-// Known global flags
-const KNOWN_FLAGS = ['--help', '-h', '--version', '-V'];
-
-/**
- * Warn about unknown flags
- */
-function warnUnknownFlags(args: string[], knownFlags: string[]): void {
-  for (const arg of args) {
-    if (arg.startsWith('-') && !knownFlags.includes(arg)) {
-      console.warn(`Warning: Unknown option '${arg}'`);
-    }
-  }
-}
-
-function showHelp(): void {
-  console.log(`
-Skirmish CLI - Run AI battles between scripts
-
-Usage:
-  skirmish <command> [options]
-
-Commands:
-  init           Create local folders for /strategies and /maps
-  run            Run a match between two player scripts  
-  validate       Validate a player script by running a test match
-  watch          Watch a match replay in the browser
-
-Options:
-  --help, -h     Show this help message
-  --version, -V  Show version number
-
-Run 'skirmish <command> --help' for command-specific help.
-
-Examples:
-  skirmish init
-  skirmish run
-  skirmish run --p1 ./bot1.js --p2 ./bot2.js
-  skirmish run --p1 ./bot1.js --p2 ./bot2.js --watch
-  skirmish validate ./my-strategy.js
-  skirmish watch
-  skirmish watch 1
-`);
+function showHelpHint(): void {
+  log(`Run 'skirmish --help' for usage.`);
 }
 
 async function main(): Promise<void> {
@@ -76,8 +39,35 @@ async function main(): Promise<void> {
   }
 
   if (!command || command === '--help' || command === '-h') {
-    warnUnknownFlags(args, KNOWN_FLAGS);
-    showHelp();
+    // Help goes to stdout when explicitly requested
+    console.log(`
+Skirmish CLI - Run AI battles between scripts
+
+Usage:
+  skirmish <command> [options]
+
+Commands:
+  init           Register and create local strategy files
+  auth           Manage authentication (login, status, logout)
+  run            Run a match between two player scripts  
+  validate       Validate a player script by running a test match
+  view           View a match replay in the browser
+
+Options:
+  -h, --help     Show this help message
+  -V, --version  Show version number
+
+Run 'skirmish <command> --help' for command-specific help.
+
+Examples:
+  skirmish init
+  skirmish run
+  skirmish run --p1 ./strategies/example_1.js --p2 ./strategies/example_2.js
+  skirmish run --p1 ./bot1.js --p2 ./bot2.js --view
+  skirmish validate ./my-strategy.js
+  skirmish view
+  skirmish view 1
+`);
     process.exit(0);
   }
 
@@ -88,25 +78,28 @@ async function main(): Promise<void> {
     case 'init':
       await import('./init.js');
       break;
+    case 'auth':
+      await import('./auth.js');
+      break;
     case 'run':
       await import('./run.js');
       break;
     case 'validate':
       await import('./validate.js');
       break;
-    case 'watch': {
-      const { runCli } = await import('./watch.js');
+    case 'view': {
+      const { runCli } = await import('./view.js');
       await runCli();
       break;
     }
     default:
-      console.error(`Unknown command: ${command}`);
-      showHelp();
+      log(`Unknown command: ${command}`);
+      showHelpHint();
       process.exit(1);
   }
 }
 
 main().catch(err => {
-  console.error('Error:', err);
+  log('Error:', err);
   process.exit(1);
 });
