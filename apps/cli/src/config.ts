@@ -13,11 +13,18 @@ export interface Credentials {
   createdAt: string;
 }
 
-const SKIRMISH_DIR = join(homedir(), '.skirmish');
+// Unix: respect XDG_CONFIG_HOME, default to ~/.config/skirmish
+// Windows: use ~/.skirmish (no XDG convention)
+const SKIRMISH_DIR = process.platform === 'win32'
+  ? join(homedir(), '.skirmish')
+  : join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'skirmish');
 const CREDENTIALS_FILE = join(SKIRMISH_DIR, 'credentials.json');
 
 // API base URL - can be overridden with SKIRMISH_API_URL env var
 export const API_BASE_URL = process.env.SKIRMISH_API_URL || 'https://llmskirmish.com';
+
+// Server API URL (Cloud Run) - for script submission and match execution
+export const SERVER_API_URL = process.env.SKIRMISH_SERVER_URL || 'https://server.llmskirmish.com';
 
 /**
  * Get API key from env var or credentials file

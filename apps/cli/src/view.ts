@@ -236,10 +236,10 @@ export function viewMatch(matchFilePath: string, options?: ViewMatchOptions): vo
   openBrowser(url);
 }
 
-async function main(): Promise<void> {
+export async function run(args: string[]): Promise<void> {
   let parsed;
   try {
-    parsed = parseArgs({ args: process.argv.slice(2), options: cliOptions, allowPositionals: true, strict: true });
+    parsed = parseArgs({ args, options: cliOptions, allowPositionals: true, strict: true });
   } catch (err) {
     log(`Error: ${err instanceof Error ? err.message : String(err)}`);
     process.exit(1);
@@ -282,7 +282,3 @@ async function main(): Promise<void> {
   }
 }
 
-/**
- * CLI entry point - exported for index.ts to call
- */
-export { main as runCli };

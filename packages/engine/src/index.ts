@@ -8,4 +8,5 @@ export * from './match/index.js';
 export * from './runner/index.js';
 export * from './logger/index.js';
 export * from './maps/index.js';
+export * from './rating/index.js';
 

@@ -17,8 +17,9 @@ import { getApiKey, getCredentials, deleteCredentials, getCredentialsPath, API_B
 /** Write to stderr for status messages */
 const log = (...args: unknown[]) => console.error(...args);
 
-const subcommand = process.argv[2];
-const args = process.argv.slice(3);
+const cliOptions = {
+  help: { type: 'boolean' as const, short: 'h', default: false },
+};
 
 function showHelp(): void {
   console.log(`
@@ -128,8 +129,24 @@ function logout(): void {
   }
 }
 
-async function main(): Promise<void> {
-  if (!subcommand || subcommand === '--help' || subcommand === '-h') {
+export async function run(args: string[]): Promise<void> {
+  let parsed;
+  try {
+    parsed = parseArgs({ 
+      args, 
+      options: cliOptions, 
+      allowPositionals: true,
+      strict: true 
+    });
+  } catch (err) {
+    log(`Error: ${err instanceof Error ? err.message : String(err)}`);
+    process.exit(1);
+  }
+
+  const { values, positionals } = parsed;
+  const subcommand = positionals[0];
+
+  if (values.help || !subcommand) {
     showHelp();
     process.exit(0);
   }
@@ -150,5 +167,3 @@ async function main(): Promise<void> {
       process.exit(1);
   }
 }
-
-main();
